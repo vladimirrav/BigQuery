@@ -79,3 +79,21 @@ select
   -- However, it counts only actual distinct 'cust' ignoring zero-equivalent,
   -- shows differences when considering null handling in aggregations. 
 from t; -- The main query accesses the result set defined in the CTE 't'.
+
+/* Random 6 digit for customer ID */
+with t as
+(
+  select 
+    cust,
+    if(mod(cust, (select cast(floor(rand() * 8) + 2 as int64))) = 0, 0, cast(rand() * 100 as int64)) as val
+  from unnest(
+    array(
+      select cast(floor(rand() * 900000) + 100000 as int64) as random_6_digit
+      from unnest(generate_array(1, cast(floor(rand() * 991) + 10 as int64))) as iteration -- _ (underscore can used as a placeholder when the alias is not needed)
+    )
+  ) as cust
+)
+select
+  count(distinct if(val > 0, cust, 0)) as qty_0,
+  count(distinct if(val > 0, cust, null)) as qty_null
+from t;
